@@ -584,12 +584,13 @@ static void UpdateConfiguration(AsyncWebServerRequest *request, JsonVariant &jso
   {
     if (i < rlllcChannels.size())
     {
-      uint8_t ch = constrain((int)(rlllcChannels[i] | (int)(i + 1)), 1, (int)CRSF_NUM_CHANNELS);
-      config.SetRlllcChannel(i, ch - 1);
+      const int defaultChannel = i + 1;
+      const int ch = constrain((int)rlllcChannels[i], 1, (int)CRSF_NUM_CHANNELS);
+      config.SetRlllcChannel(i, ch > 0 ? (ch - 1) : (defaultChannel - 1));
     }
     if (i < rlllcInverts.size())
     {
-      config.SetRlllcInverted(i, (bool)(rlllcInverts[i] | false));
+      config.SetRlllcInverted(i, (bool)rlllcInverts[i]);
     }
   }
 
