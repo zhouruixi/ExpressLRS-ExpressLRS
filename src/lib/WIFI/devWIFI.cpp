@@ -380,6 +380,11 @@ static void GetConfiguration(AsyncWebServerRequest *request)
     }
     #endif
     cfg["sbus-failsafe"] = config.GetFailsafeMode();
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+      cfg["rlllc-channels"][i] = config.GetRlllcChannel(i) + 1;
+      cfg["rlllc-inverts"][i] = config.GetRlllcInverted(i);
+    }
     cfg["modelid"] = config.GetModelId();
     cfg["force-tlm"] = config.GetForceTlmOff();
     cfg["vbind"] = config.GetBindStorage();
@@ -572,6 +577,21 @@ static void UpdateConfiguration(AsyncWebServerRequest *request, JsonVariant &jso
 
   uint8_t failsafe = json["sbus-failsafe"] | 0;
   config.SetFailsafeMode((eFailsafeMode)failsafe);
+
+  JsonArray rlllcChannels = json["rlllc-channels"].as<JsonArray>();
+  JsonArray rlllcInverts = json["rlllc-inverts"].as<JsonArray>();
+  for (uint8_t i = 0; i < 4; ++i)
+  {
+    if (i < rlllcChannels.size())
+    {
+      uint8_t ch = constrain((int)(rlllcChannels[i] | (int)(i + 1)), 1, (int)CRSF_NUM_CHANNELS);
+      config.SetRlllcChannel(i, ch - 1);
+    }
+    if (i < rlllcInverts.size())
+    {
+      config.SetRlllcInverted(i, (bool)(rlllcInverts[i] | false));
+    }
+  }
 
   long modelid = json["modelid"] | 255;
   if (modelid < 0 || modelid > 63) modelid = 255;

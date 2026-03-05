@@ -252,3 +252,31 @@ typedef struct {
 // V11 changed
 // rx_config_pwm_t to add stretch and changed failsafe from 988-2012 to 476-2523
 
+typedef struct {
+    uint32_t    version;
+    uint8_t     uid[UID_LEN];
+    uint8_t     unused_padding;
+    uint8_t     serial1Protocol:4,
+                serial1Protocol_unused:4;
+    uint32_t    flash_discriminator;
+    struct {
+        uint16_t    scale;
+        int16_t     offset;
+    } vbat;
+    uint8_t     bindStorage:2,
+                power:4,
+                antennaMode:2;
+    uint8_t     powerOnCounter:2,
+                forceTlmOff:1,
+                rateInitialIdx:5;
+    uint8_t     modelId;
+    uint8_t     serialProtocol:4,
+                failsafeMode:2,
+                unused:2;
+    rx_config_pwm_t pwmChannels[16] __attribute__((aligned(4)));
+    uint8_t     teamraceChannel:4,
+                teamracePosition:3,
+                teamracePitMode:1;
+    uint8_t     targetSysId;
+    uint8_t     sourceSysId;
+} v11_rx_config_t;

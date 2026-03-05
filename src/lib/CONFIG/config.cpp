@@ -848,6 +848,8 @@ void RxConfig::Load()
         case 9: // fallthrough
         case 10:
             UpgradeEepromV9V10(version); break;
+        case 11:
+            UpgradeEepromV11(); break;
     }
     m_modified = EVENT_CONFIG_MODEL_CHANGED; // anything to force write
     Commit();
@@ -1047,6 +1049,32 @@ void RxConfig::UpgradeEepromV9V10(uint8_t ver)
     }
     for (unsigned ch=0; ch<16; ++ch)
         PwmConfigV9(&old.pwmChannels[ch], &m_config.pwmChannels[ch]);
+}
+
+void RxConfig::UpgradeEepromV11()
+{
+    v11_rx_config_t old;
+    m_eeprom->Get(0, old);
+
+    UpgradeUid(nullptr, old.uid);
+    CONFCOPY(serial1Protocol);
+    CONFCOPY(vbat.scale);
+    CONFCOPY(vbat.offset);
+    CONFCOPY(bindStorage);
+    CONFCOPY(power);
+    CONFCOPY(antennaMode);
+    CONFCOPY(forceTlmOff);
+    CONFCOPY(rateInitialIdx);
+    CONFCOPY(modelId);
+    CONFCOPY(serialProtocol);
+    CONFCOPY(failsafeMode);
+    CONFCOPY(teamraceChannel);
+    CONFCOPY(teamracePosition);
+    CONFCOPY(teamracePitMode);
+    CONFCOPY(targetSysId);
+    CONFCOPY(sourceSysId);
+    for (unsigned ch=0; ch<16; ++ch)
+        m_config.pwmChannels[ch].raw = old.pwmChannels[ch].raw;
 }
 
 /**
@@ -1260,6 +1288,11 @@ RxConfig::SetDefaults(bool commit)
     }
 
     m_config.teamraceChannel = AUX7; // CH11
+    m_config.rlllcChannels[0] = 0;
+    m_config.rlllcChannels[1] = 1;
+    m_config.rlllcChannels[2] = 7;
+    m_config.rlllcChannels[3] = 8;
+    m_config.rlllcInverted = 0;
 
     if (commit)
     {
@@ -1404,6 +1437,33 @@ void RxConfig::SetSourceSysId(uint8_t value)
     if (m_config.sourceSysId != value)
     {
         m_config.sourceSysId = value;
+        m_modified = EVENT_CONFIG_MODEL_CHANGED;
+    }
+}
+
+void RxConfig::SetRlllcChannel(uint8_t slot, uint8_t channel)
+{
+    if (slot >= 4)
+        return;
+
+    const uint8_t constrained = constrain(channel, (uint8_t)0, (uint8_t)(CRSF_NUM_CHANNELS - 1));
+    if (m_config.rlllcChannels[slot] != constrained)
+    {
+        m_config.rlllcChannels[slot] = constrained;
+        m_modified = EVENT_CONFIG_MODEL_CHANGED;
+    }
+}
+
+void RxConfig::SetRlllcInverted(uint8_t slot, bool inverted)
+{
+    if (slot >= 4)
+        return;
+
+    const uint8_t bit = (1U << slot);
+    const uint8_t nextVal = inverted ? (m_config.rlllcInverted | bit) : (m_config.rlllcInverted & ~bit);
+    if (nextVal != m_config.rlllcInverted)
+    {
+        m_config.rlllcInverted = nextVal;
         m_modified = EVENT_CONFIG_MODEL_CHANGED;
     }
 }

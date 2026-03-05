@@ -33,7 +33,7 @@ static char pwmModes[] = "50Hz;60Hz;100Hz;160Hz;333Hz;400Hz;10kHzDuty;On/Off;DSh
 static selectionParameter luaSerialProtocol = {
     {"Protocol", CRSF_TEXT_SELECTION},
     0, // value
-    "CRSF;Inverted CRSF;SBUS;Inverted SBUS;SUMD;DJI RS Pro;HoTT Telemetry;MAVLink;DisplayPort;GPS",
+    "CRSF;Inverted CRSF;SBUS;Inverted SBUS;SUMD;DJI RS Pro;HoTT Telemetry;MAVLink;DisplayPort;GPS;RLLLC",
     STR_EMPTYSPACE
 };
 
@@ -41,10 +41,59 @@ static selectionParameter luaSerialProtocol = {
 static selectionParameter luaSerial1Protocol = {
     {"Protocol2", CRSF_TEXT_SELECTION},
     0, // value
-    "Off;CRSF;Inverted CRSF;SBUS;Inverted SBUS;SUMD;DJI RS Pro;HoTT Telemetry;Tramp;SmartAudio;DisplayPort;GPS",
+    "Off;CRSF;Inverted CRSF;SBUS;Inverted SBUS;SUMD;DJI RS Pro;HoTT Telemetry;Tramp;SmartAudio;DisplayPort;GPS;RLLLC",
     STR_EMPTYSPACE
 };
 #endif
+
+static selectionParameter luaRlllcChannel2 = {
+    {"RLLLC B2 Ch", CRSF_TEXT_SELECTION},
+    0,
+    "CH1;CH2;CH3;CH4;CH5;CH6;CH7;CH8;CH9;CH10;CH11;CH12;CH13;CH14;CH15;CH16",
+    STR_EMPTYSPACE
+};
+static selectionParameter luaRlllcInvert2 = {
+    {"RLLLC B2 Inv", CRSF_TEXT_SELECTION},
+    0,
+    "Off;On",
+    STR_EMPTYSPACE
+};
+static selectionParameter luaRlllcChannel3 = {
+    {"RLLLC B3 Ch", CRSF_TEXT_SELECTION},
+    1,
+    "CH1;CH2;CH3;CH4;CH5;CH6;CH7;CH8;CH9;CH10;CH11;CH12;CH13;CH14;CH15;CH16",
+    STR_EMPTYSPACE
+};
+static selectionParameter luaRlllcInvert3 = {
+    {"RLLLC B3 Inv", CRSF_TEXT_SELECTION},
+    0,
+    "Off;On",
+    STR_EMPTYSPACE
+};
+static selectionParameter luaRlllcChannel4 = {
+    {"RLLLC B4 Ch", CRSF_TEXT_SELECTION},
+    7,
+    "CH1;CH2;CH3;CH4;CH5;CH6;CH7;CH8;CH9;CH10;CH11;CH12;CH13;CH14;CH15;CH16",
+    STR_EMPTYSPACE
+};
+static selectionParameter luaRlllcInvert4 = {
+    {"RLLLC B4 Inv", CRSF_TEXT_SELECTION},
+    0,
+    "Off;On",
+    STR_EMPTYSPACE
+};
+static selectionParameter luaRlllcChannel5 = {
+    {"RLLLC B5 Ch", CRSF_TEXT_SELECTION},
+    8,
+    "CH1;CH2;CH3;CH4;CH5;CH6;CH7;CH8;CH9;CH10;CH11;CH12;CH13;CH14;CH15;CH16",
+    STR_EMPTYSPACE
+};
+static selectionParameter luaRlllcInvert5 = {
+    {"RLLLC B5 Inv", CRSF_TEXT_SELECTION},
+    0,
+    "Off;On",
+    STR_EMPTYSPACE
+};
 
 static selectionParameter luaSBUSFailsafeMode = {
     {"SBUS failsafe", CRSF_TEXT_SELECTION},
@@ -515,6 +564,15 @@ void RXEndpoint::registerParameters()
   }
 #endif
 
+  registerParameter(&luaRlllcChannel2, [](propertiesCommon* item, uint8_t arg){ config.SetRlllcChannel(0, arg); });
+  registerParameter(&luaRlllcInvert2, [](propertiesCommon* item, uint8_t arg){ config.SetRlllcInverted(0, arg != 0); });
+  registerParameter(&luaRlllcChannel3, [](propertiesCommon* item, uint8_t arg){ config.SetRlllcChannel(1, arg); });
+  registerParameter(&luaRlllcInvert3, [](propertiesCommon* item, uint8_t arg){ config.SetRlllcInverted(1, arg != 0); });
+  registerParameter(&luaRlllcChannel4, [](propertiesCommon* item, uint8_t arg){ config.SetRlllcChannel(2, arg); });
+  registerParameter(&luaRlllcInvert4, [](propertiesCommon* item, uint8_t arg){ config.SetRlllcInverted(2, arg != 0); });
+  registerParameter(&luaRlllcChannel5, [](propertiesCommon* item, uint8_t arg){ config.SetRlllcChannel(3, arg); });
+  registerParameter(&luaRlllcInvert5, [](propertiesCommon* item, uint8_t arg){ config.SetRlllcInverted(3, arg != 0); });
+
   registerParameter(&luaSBUSFailsafeMode, [](propertiesCommon* item, uint8_t arg){
     config.SetFailsafeMode((eFailsafeMode)arg);
   });
@@ -598,6 +656,43 @@ void RXEndpoint::updateParameters()
 #endif
 
   setTextSelectionValue(&luaSBUSFailsafeMode, config.GetFailsafeMode());
+
+  setTextSelectionValue(&luaRlllcChannel2, config.GetRlllcChannel(0));
+  setTextSelectionValue(&luaRlllcInvert2, config.GetRlllcInverted(0));
+  setTextSelectionValue(&luaRlllcChannel3, config.GetRlllcChannel(1));
+  setTextSelectionValue(&luaRlllcInvert3, config.GetRlllcInverted(1));
+  setTextSelectionValue(&luaRlllcChannel4, config.GetRlllcChannel(2));
+  setTextSelectionValue(&luaRlllcInvert4, config.GetRlllcInverted(2));
+  setTextSelectionValue(&luaRlllcChannel5, config.GetRlllcChannel(3));
+  setTextSelectionValue(&luaRlllcInvert5, config.GetRlllcInverted(3));
+
+  const bool rlllcSelected = config.GetSerialProtocol() == PROTOCOL_RLLLC
+#if defined(PLATFORM_ESP32)
+      || (RX_HAS_SERIAL1 && config.GetSerial1Protocol() == PROTOCOL_SERIAL1_RLLLC)
+#endif
+      ;
+  if (rlllcSelected)
+  {
+    LUA_FIELD_SHOW(luaRlllcChannel2)
+    LUA_FIELD_SHOW(luaRlllcInvert2)
+    LUA_FIELD_SHOW(luaRlllcChannel3)
+    LUA_FIELD_SHOW(luaRlllcInvert3)
+    LUA_FIELD_SHOW(luaRlllcChannel4)
+    LUA_FIELD_SHOW(luaRlllcInvert4)
+    LUA_FIELD_SHOW(luaRlllcChannel5)
+    LUA_FIELD_SHOW(luaRlllcInvert5)
+  }
+  else
+  {
+    LUA_FIELD_HIDE(luaRlllcChannel2)
+    LUA_FIELD_HIDE(luaRlllcInvert2)
+    LUA_FIELD_HIDE(luaRlllcChannel3)
+    LUA_FIELD_HIDE(luaRlllcInvert3)
+    LUA_FIELD_HIDE(luaRlllcChannel4)
+    LUA_FIELD_HIDE(luaRlllcInvert4)
+    LUA_FIELD_HIDE(luaRlllcChannel5)
+    LUA_FIELD_HIDE(luaRlllcInvert5)
+  }
 
   if (GPIO_PIN_ANT_CTRL != UNDEF_PIN)
   {

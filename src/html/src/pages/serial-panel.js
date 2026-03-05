@@ -10,6 +10,8 @@ import {SERIAL_OPTIONS1, SERIAL_OPTIONS2} from "../utils/globals.js";
 class SerialPanel extends LitElement {
 
     PROTOCOL_AIRPORT = SERIAL_OPTIONS1.length - 1
+    PROTOCOL_RLLLC_1 = SERIAL_OPTIONS1.indexOf("RLLLC")
+    PROTOCOL_RLLLC_2 = SERIAL_OPTIONS2.indexOf("RLLLC")
 
     @state() accessor serial1Protocol
     @state() accessor serial2Protocol
@@ -17,6 +19,8 @@ class SerialPanel extends LitElement {
     @state() accessor sbusFailsafe
     @state() accessor isAirport
     @state() accessor djiArmed
+    @state() accessor rlllcChannels
+    @state() accessor rlllcInverts
 
     createRenderRoot() {
         this.isAirport = elrsState.options['is-airport']
@@ -25,6 +29,8 @@ class SerialPanel extends LitElement {
         this.baudRate = elrsState.options['rcvr-uart-baud']
         this.sbusFailsafe = elrsState.config['sbus-failsafe']
         this.djiArmed = elrsState.options['dji-permanently-armed']
+        this.rlllcChannels = [...(elrsState.config['rlllc-channels'] || [1, 2, 8, 9])]
+        this.rlllcInverts = [...(elrsState.config['rlllc-inverts'] || [false, false, false, false])]
         this._saveSerial = this._saveSerial.bind(this)
         return this
     }
@@ -88,6 +94,24 @@ class SerialPanel extends LitElement {
                                ?checked="${this.djiArmed}"
                                @change="${(e) => {this.djiArmed = e.target.checked}}"/>
                         <label for="dji">Permanently arm DJI air units</label>
+                    </div>
+                    ` : ''}
+                    ${this._rlllcSelected() ? html`
+                    <div id="rlllc-config">
+                        <div class="mui--text-title">RLLLC Mapping</div>
+                        <p>Configure CRSF channel mapping and inversion for RLLLC frame bytes 2-5.</p>
+                        ${[0,1,2,3].map((idx) => html`
+                            <div class="mui-select">
+                                <select @change=${(e) => this._updateRlllcChannel(idx, e)}>
+                                    ${Array.from({length: 16}, (_, ch) => html`<option value='${ch + 1}' ?selected=${this.rlllcChannels[idx] === ch + 1}>CH${ch + 1}</option>`)}
+                                </select>
+                                <label>Byte ${idx + 2} Channel</label>
+                            </div>
+                            <div class="mui-checkbox">
+                                <input id='rlllc-inv-${idx}' type='checkbox' ?checked=${this.rlllcInverts[idx]} @change=${(e) => this._updateRlllcInvert(idx, e)} />
+                                <label for='rlllc-inv-${idx}'>Byte ${idx + 2} Invert</label>
+                            </div>
+                        `)}
                     </div>
                     ` : ''}
                     <button class="mui-btn mui-btn--small mui-btn--primary"
@@ -160,10 +184,26 @@ class SerialPanel extends LitElement {
         return this.serial1Protocol === 8 || this.serial2Protocol === 9
     }
 
+    _rlllcSelected() {
+        return this.serial1Protocol === this.PROTOCOL_RLLLC_1 || this.serial2Protocol === this.PROTOCOL_RLLLC_2
+    }
+
+    _updateRlllcChannel(idx, e) {
+        this.rlllcChannels[idx] = parseInt(e.target.value)
+        this.rlllcChannels = [...this.rlllcChannels]
+    }
+
+    _updateRlllcInvert(idx, e) {
+        this.rlllcInverts[idx] = e.target.checked
+        this.rlllcInverts = [...this.rlllcInverts]
+    }
+
     _configChanged() {
         return (!this.isAirport && this.serial1Protocol !== elrsState.config['serial-protocol']) ||
             this.serial2Protocol !== elrsState.config['serial1-protocol'] ||
-            this.sbusFailsafe !== elrsState.config['sbus-failsafe']
+            this.sbusFailsafe !== elrsState.config['sbus-failsafe'] ||
+            JSON.stringify(this.rlllcChannels) !== JSON.stringify(elrsState.config['rlllc-channels'] || [1, 2, 8, 9]) ||
+            JSON.stringify(this.rlllcInverts) !== JSON.stringify(elrsState.config['rlllc-inverts'] || [false, false, false, false])
     }
     _optionsChanged() {
         return this.isAirport !== elrsState.options['is-airport'] ||
@@ -186,7 +226,9 @@ class SerialPanel extends LitElement {
                 config: {
                     'serial-protocol': this.isAirport ? 0 : this.serial1Protocol,
                     'serial1-protocol': this.serial2Protocol,
-                    'sbus-failsafe': this.sbusFailsafe
+                    'sbus-failsafe': this.sbusFailsafe,
+                    'rlllc-channels': this.rlllcChannels,
+                    'rlllc-inverts': this.rlllcInverts
                 }
             },
             () => {this.requestUpdate()}

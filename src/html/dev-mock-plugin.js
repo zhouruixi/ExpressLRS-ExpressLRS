@@ -60,6 +60,8 @@ export function devMockPlugin() {
             'serial-protocol': 1,
             'serial1-protocol': 0,
             'sbus-failsafe': 0,
+            'rlllc-channels': [1, 2, 8, 9],
+            'rlllc-inverts': [false, false, false, false],
             "pwm": [
                 {"config": 0, "pin": 0, "features": 12},
                 {"config": 1536, "pin": 4, "features": 12 + 16},
