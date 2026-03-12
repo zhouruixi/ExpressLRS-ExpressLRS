@@ -1368,7 +1368,7 @@ static void setupSerial()
     }
 
 #if defined(DEBUG_ENABLED)
-#if defined(PLATFORM_ESP32_S3) || defined(PLATFORM_ESP32_C3)
+#if defined(PLATFORM_ESP32_S3)
     USBSerial.begin(460800);
     BackpackOrLogStrm = &USBSerial;
 #else
